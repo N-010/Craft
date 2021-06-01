@@ -36,22 +36,15 @@ public class QuestSystemEditorPlugin : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"QuestSystemPlugin",
 				"CoreUObject",
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"UnrealEd",
+				"BlueprintGraph",
 			}
 			);
-		
-		if (Target.bBuildEditor)
-		{
-			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"UnrealEd",
-				});
-		}
-		
 		
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
