@@ -43,6 +43,8 @@ public class QuestSystemEditorPlugin : ModuleRules
 				"SlateCore",
 				"UnrealEd",
 				"BlueprintGraph",
+				"AssetTools",
+				"Kismet",
 			}
 			);
 		

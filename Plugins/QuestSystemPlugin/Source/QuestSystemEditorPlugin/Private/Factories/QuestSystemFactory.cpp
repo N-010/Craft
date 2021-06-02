@@ -57,7 +57,7 @@ UObject* UQuestSystemFactory::FactoryCreateNew(UClass* InClass, UObject* InParen
 			                                        UBlueprintGeneratedClass::StaticClass(), CallingContext));
 		if (NewBP)
 		{
-			CreateGraphForNewBlueprint(NewBP);
+			CreateGraphsForNewBlueprint(NewBP);
 		}
 
 		return NewBP;
@@ -69,7 +69,7 @@ bool UQuestSystemFactory::DoesSupportClass(UClass* Class)
 	return IsValid(Class) ? Class == UQuestSystemBlueprint::StaticClass() : false;
 }
 
-void UQuestSystemFactory::CreateGraphForNewBlueprint(UQuestSystemBlueprint* NewBlueprint)
+void UQuestSystemFactory::CreateGraphsForNewBlueprint(UQuestSystemBlueprint* NewBlueprint)
 {
 	if (IsValid(NewBlueprint))
 	{

@@ -33,8 +33,7 @@ public:
 
 	virtual bool DoesSupportClass(UClass* Class) override;
 
-protected:
-	virtual void CreateGraphForNewBlueprint(class UQuestSystemBlueprint* NewBlueprint);
+	static void CreateGraphsForNewBlueprint(class UQuestSystemBlueprint* NewBlueprint);
 	
 
 

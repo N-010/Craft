@@ -2,17 +2,53 @@
 
 #include "QuestSystemEditorPlugin.h"
 
+#include "AssetToolsModule.h"
+#include "Algo/ForEach.h"
+#include "AssetTypeActions/QuestSystemBlueprintActions.h"
+
 #define LOCTEXT_NAMESPACE "FQuestSystemEditorPluginModule"
+
+EAssetTypeCategories::Type FQuestSystemEditorPluginModule::QuestSystemCategory;
+FName FQuestSystemEditorPluginModule::AssetToolsName = TEXT("AssetTools");
+
 
 void FQuestSystemEditorPluginModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+	IAssetTools& AssetTools = GetAssetTools();
+	QuestSystemCategory = AssetTools.RegisterAdvancedAssetCategory(FName(TEXT("QuestSystem")), LOCTEXT("QuestSystemCategory", "Quest System"));
+	RegisterAssetTypeAction(&AssetTools, MakeShareable(new FQuestSystemBlueprintActions(QuestSystemCategory)));
 }
 
 void FQuestSystemEditorPluginModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
+	IAssetTools& AssetTools = GetAssetTools();
+	UnRegisterAssetTypeActions(&AssetTools);
+}
+
+void FQuestSystemEditorPluginModule::RegisterAssetTypeAction(IAssetTools* AssetTools,
+	const TSharedRef<IAssetTypeActions>& NewActions)
+{
+	if(AssetTools)
+	{
+		AssetTools->RegisterAssetTypeActions(NewActions);
+		CreatedAssetTypeActions.Add(NewActions);
+	}
+}
+
+void FQuestSystemEditorPluginModule::UnRegisterAssetTypeActions(IAssetTools* AssetTools)
+{
+	if(AssetTools)
+	{
+		for(int32 Idx = 0; Idx < CreatedAssetTypeActions.Num(); ++Idx)
+		{
+			AssetTools->UnregisterAssetTypeActions(CreatedAssetTypeActions[Idx].ToSharedRef());
+		}
+	}
+}
+
+FORCEINLINE IAssetTools& FQuestSystemEditorPluginModule::GetAssetTools() const
+{
+	return FModuleManager::LoadModuleChecked<FAssetToolsModule>(AssetToolsName).Get();
 }
 
 #undef LOCTEXT_NAMESPACE
