@@ -13,10 +13,6 @@
 
 #define LOCTEXT_NAMESPACE "FCraftModule"
 
-const FPrimaryAssetType FCraftModule::ArmorRecipe = TEXT("ArmorRecipe");
-const FPrimaryAssetType FCraftModule::WeaponRecipe = TEXT("WeaponRecipe");
-const FPrimaryAssetType FCraftModule::MedicineRecipe = TEXT("MedicineRecipe");
-
 void FCraftModule::StartupModule()
 {
 }

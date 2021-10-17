@@ -2,12 +2,12 @@
 
 
 #include "Components/ItemContainer.h"
-
 #include "PrimaryDataAssets/PrimaryAssetRecipe.h"
 
 
 // Sets default values for this component's properties
 UItemContainer::UItemContainer()
+	: Super()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
@@ -22,13 +22,13 @@ bool UItemContainer::AddItem_Implementation(const FPrimaryAssetId& Item, const i
 		FItemData OldItemData;
 		GetItemData_Implementation(Item, OldItemData);
 		const int32 OldItemCount = OldItemData.Count;
-		
+
 		FItemData NewItemData = OldItemData;
 		NewItemData.UpdateItemData({ItemCount}, MAX_int32);
 
 		if (NewItemData != OldItemData)
 		{
-			Resources.Add(Item, NewItemData);
+			GetItemMap_Mutable().Add(Item, NewItemData);
 
 			bResult = true;
 
@@ -61,11 +61,11 @@ bool UItemContainer::DeleteItem_Implementation(const FPrimaryAssetId& Item, cons
 
 			if (ResourceInfo.IsValid())
 			{
-				Resources.Add(Item, ResourceInfo);
+				GetItemMap_Mutable().Add(Item, ResourceInfo);
 			}
 			else
 			{
-				Resources.Remove(Item);
+				GetItemMap_Mutable().Remove(Item);
 			}
 
 			bResult = true;
@@ -83,7 +83,7 @@ bool UItemContainer::GetItemData_Implementation(const FPrimaryAssetId& Item, FIt
 	Data = FItemData(0);
 	if (Item.IsValid())
 	{
-		if (const FItemData* FoundData = Resources.Find(Item))
+		if (const FItemData* FoundData = GetItemMap().Find(Item))
 		{
 			Data = *FoundData;
 			bResult = true;
@@ -94,6 +94,25 @@ bool UItemContainer::GetItemData_Implementation(const FPrimaryAssetId& Item, FIt
 	return bResult;
 }
 
-void UItemContainer::NotifyItemChanged_Implementation(bool bAdded, const FPrimaryAssetId& Item, const int32& ItemCount)
+void UItemContainer::GetItems_Implementation(TArray<FPrimaryAssetId>& PrimaryAssetIds)
 {
+	PrimaryAssetIds.Reserve(GetItemMap().Num());
+	for (const auto& Item : GetItemMap())
+	{
+		PrimaryAssetIds.Add(Item.Key);
+	}
+}
+
+const TMap<FPrimaryAssetId, FItemData>& UItemContainer::GetItemMap() const
+{
+	return Items;
+}
+
+void UItemContainer::NotifyItemChanged_Implementation(const bool bAdded, const FPrimaryAssetId& Item,
+                                                      const int32& ItemCount)
+{
+	if (OnItemChanged.IsBound())
+	{
+		OnItemChanged.Broadcast(bAdded, Item, ItemCount);
+	}
 }

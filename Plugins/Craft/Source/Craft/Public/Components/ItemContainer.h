@@ -8,6 +8,8 @@
 #include "Interfaces/ItemcontainerInterface.h"
 #include "ItemContainer.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnItemChanged, bool, bAdded, const FPrimaryAssetId, Item, const int32,
+                                               Count);
 
 class UPrimaryAssetRecipe;
 
@@ -18,7 +20,14 @@ class CRAFT_API UItemContainer : public UActorComponent, public IItemContainerIn
 
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=(AllowPrivateAccess="true"), Category = "Inventory")
-	TMap<FPrimaryAssetId, FItemData> Resources;
+	TMap<FPrimaryAssetId, FItemData> Items;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, EditDefaultsOnly, meta=(AllowPrivateAccess="true"), Category="Container")
+	FItemArray ItemArray;
+	
+public:
+	UPROPERTY(BlueprintAssignable)
+	FOnItemChanged OnItemChanged;
 
 public:
 	UItemContainer();
@@ -28,7 +37,11 @@ public:
 	virtual bool AddItem_Implementation(const FPrimaryAssetId& Item, const int32 ItemCount) override;
 	virtual bool DeleteItem_Implementation(const FPrimaryAssetId& Item, const int32 ItemCount) override;
 	virtual bool GetItemData_Implementation(const FPrimaryAssetId& Item, FItemData& Data) override;
+	virtual void GetItems_Implementation(TArray<FPrimaryAssetId>& Items) override;
+	virtual const TMap<FPrimaryAssetId, FItemData>& GetItemMap() const override;
+
 protected:
-	virtual void NotifyItemChanged_Implementation(bool bAdded, const FPrimaryAssetId& Item, const int32& ItemCount) override;
+	virtual void
+	NotifyItemChanged_Implementation(const bool bAdded, const FPrimaryAssetId& Item, const int32& ItemCount) override;
 	//~ End IResourceInventoryInterface Interfaces
 };

@@ -24,17 +24,26 @@ class CRAFT_API IItemContainerInterface
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Craft|Inventory|Recource")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Container")
 	bool AddItem(const FPrimaryAssetId& Item, const int32 ItemCount);
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Craft|Inventory|Recource")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Container")
 	bool DeleteItem(const FPrimaryAssetId& Item, const int32 ItemCount);
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Craft|Inventory|Recource")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Container")
 	bool GetItemData(const FPrimaryAssetId& Item, FItemData& Data);
+	
+	virtual const TMap<FPrimaryAssetId, FItemData>& GetItemMap() const = 0;
+	virtual TMap<FPrimaryAssetId, FItemData>& GetItemMap_Mutable()
+	{
+		return const_cast<TMap<FPrimaryAssetId, FItemData>&>(GetItemMap());
+	}
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Container")
+	void GetItems(TArray<FPrimaryAssetId>& Items);
+	
 protected:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, meta=(BlueprintProtected="True"),
-		Category="Craft|Inventory|Notify")
-	void NotifyItemChanged(bool bAdded, const FPrimaryAssetId& Item, const int32& ItemCount);
+		Category="Container|Notify")
+	void NotifyItemChanged(const bool bAdded, const FPrimaryAssetId& Item, const int32& ItemCount);
 };

@@ -14,6 +14,12 @@ class CRAFT_API UCraftAssetManager : public UAssetManager
 {
 	GENERATED_BODY()
 
-	public:
+public:
+	static const FPrimaryAssetType ArmorRecipe;
+	static const FPrimaryAssetType WeaponRecipe;
+	static const FPrimaryAssetType MedicineRecipe;
+	static const FPrimaryAssetType ShopItem;
+	
+public:
 	virtual void StartInitialLoading() override;
 };

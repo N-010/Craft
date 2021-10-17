@@ -9,10 +9,8 @@ struct FExchangesData;
 
 class FCraftModule : public IModuleInterface
 {
-public:
-	static const FPrimaryAssetType ArmorRecipe;
-	static const FPrimaryAssetType WeaponRecipe;
-	static const FPrimaryAssetType MedicineRecipe;
+
+	
 
 public:
 	/** IModuleInterface implementation */
