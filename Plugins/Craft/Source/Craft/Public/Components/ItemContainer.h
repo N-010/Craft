@@ -19,12 +19,15 @@ class CRAFT_API UItemContainer : public UActorComponent, public IItemContainerIn
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=(AllowPrivateAccess="true"), Category = "Inventory")
-	TMap<FPrimaryAssetId, FItemData> Items;
-
 	UPROPERTY(Replicated, BlueprintReadOnly, EditDefaultsOnly, meta=(AllowPrivateAccess="true"), Category="Container")
 	FItemArray ItemArray;
-	
+
+	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"), Category="Network")
+	bool bReplicateItemArray;
+
+	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"), Category="Network")
+	TEnumAsByte<ELifetimeCondition> ItemReplicationCondition;
+
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnItemChanged OnItemChanged;
@@ -34,14 +37,16 @@ public:
 
 	//~ Begin IResourceInventoryInterface Interfaces
 public:
-	virtual bool AddItem_Implementation(const FPrimaryAssetId& Item, const int32 ItemCount) override;
-	virtual bool DeleteItem_Implementation(const FPrimaryAssetId& Item, const int32 ItemCount) override;
-	virtual bool GetItemData_Implementation(const FPrimaryAssetId& Item, FItemData& Data) override;
-	virtual void GetItems_Implementation(TArray<FPrimaryAssetId>& Items) override;
-	virtual const TMap<FPrimaryAssetId, FItemData>& GetItemMap() const override;
+	virtual bool AddItemData_Implementation(const FItemData& ItemData) override;
+	virtual bool DeleteItemData_Implementation(const FItemData& ItemData) override;
+	virtual void GetItemDataArray_Implementation(TArray<FItemData>& ItemDataArray) override;
 
 protected:
 	virtual void
 	NotifyItemChanged_Implementation(const bool bAdded, const FPrimaryAssetId& Item, const int32& ItemCount) override;
 	//~ End IResourceInventoryInterface Interfaces
+
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 };

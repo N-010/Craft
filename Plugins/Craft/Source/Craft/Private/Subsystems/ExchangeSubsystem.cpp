@@ -4,44 +4,53 @@
 #include "Subsystems/ExchangeSubsystem.h"
 
 #include "Craft.h"
-#include "Data/ExchangesData.h"
 #include "Data/ItemData.h"
 #include "Interfaces/ItemcontainerInterface.h"
 #include "Kismet/KismetMathLibrary.h"
 
-void UExchangeSubsystem::GetExchanges(const FPrimaryAssetId& ItemId, TArray<FExchangesData>& Exchanges)
+void UExchangeSubsystem::GetExchanges(const FPrimaryAssetId& ItemId, TArray<FItemData>& Exchanges)
 {
 	FCraftModule::GetExchanges(ItemId, Exchanges);
 }
 
-bool UExchangeSubsystem::CanExchangeOnItem(const TScriptInterface<IItemContainerInterface>& ResourceInventoryInterface,
-                                   const FPrimaryAssetId& ItemId)
+bool UExchangeSubsystem::CanExchangeOnItem(const TScriptInterface<IItemContainerInterface>& ItemContainerInterface,
+                                           const FPrimaryAssetId& ItemId)
 {
-	if (!IsValid(ResourceInventoryInterface.GetObject()) || !ItemId.IsValid())
+	if (!IsValid(ItemContainerInterface.GetObject()) || !ItemId.IsValid())
 	{
 		return false;
 	}
 
-	TArray<FExchangesData> Exchanges;
+	TArray<FItemData> Exchanges;
 	FCraftModule::GetExchanges(ItemId, Exchanges);
 	if (Exchanges.Num() <= 0)
 	{
 		return false;
 	}
 
-	for (const auto& Dependency : Exchanges)
+	TArray<FItemData> Items;
+	IItemContainerInterface::Execute_GetItemDataArray(ItemContainerInterface.GetObject(), Items);
+	if (Items.Num() <= 0)
 	{
-		if (!Dependency.IsValid())
+		return false;
+	}
+
+	for (const auto& Exchange : Exchanges)
+	{
+		if (!Exchange.IsValid())
 		{
 			return false;
 		}
 
-		FItemData ItemData;
-		IItemContainerInterface::Execute_GetItemData(ResourceInventoryInterface.GetObject(),
-		                                                     Dependency.ItemID, ItemData);
-		if (!ItemData.IsValid() || Dependency.ItemData > ItemData)
+		if (const FItemData* FoundItem = Items.FindByPredicate([&Exchange](const FItemData& Item)
 		{
-			return false;
+			return Item.IsValid() && Exchange.IsValid() && Item.ItemID == Exchange.ItemID;
+		}))
+		{
+			if (!FoundItem->IsValid() || *FoundItem < Exchange)
+			{
+				return false;
+			}
 		}
 	}
 
@@ -49,25 +58,24 @@ bool UExchangeSubsystem::CanExchangeOnItem(const TScriptInterface<IItemContainer
 }
 
 bool UExchangeSubsystem::RemoveExchangesFromInventory(
-	const TScriptInterface<IItemContainerInterface>& ResourceInventoryInterface, const FPrimaryAssetId& ItemId)
+	const TScriptInterface<IItemContainerInterface>& ItemContainerInterface, const FPrimaryAssetId& ItemId)
 {
-	if (IsValid(ResourceInventoryInterface.GetObject()) && ItemId.IsValid() && CanExchangeOnItem(
-		ResourceInventoryInterface, ItemId))
+	if (IsValid(ItemContainerInterface.GetObject()) && ItemId.IsValid() && CanExchangeOnItem(
+		ItemContainerInterface, ItemId))
 	{
-		TArray<FExchangesData> Exchanges;
+		TArray<FItemData> Exchanges;
 		GetExchanges(ItemId, Exchanges);
 		if (Exchanges.Num() > 0)
 		{
 			// If all items are valid
-			if (!Exchanges.FindByPredicate([&](const FExchangesData& Item)
+			if (!Exchanges.FindByPredicate([&](const FItemData& Item)
 			{
 				return !Item.IsValid();
 			}))
 			{
-				for (const auto& Dependency : Exchanges)
+				for (const auto& Exchange : Exchanges)
 				{
-					IItemContainerInterface::Execute_DeleteItem(
-						ResourceInventoryInterface.GetObject(), Dependency.ItemID, Dependency.ItemData.Count);
+					IItemContainerInterface::Execute_DeleteItemData(ItemContainerInterface.GetObject(), Exchange);
 				}
 
 				return true;
@@ -79,38 +87,53 @@ bool UExchangeSubsystem::RemoveExchangesFromInventory(
 }
 
 int32 UExchangeSubsystem::AvailableNumberOfItemsForCraft(
-	const TScriptInterface<IItemContainerInterface>& ResourceInventoryInterface, const FPrimaryAssetId& ItemId)
+	const TScriptInterface<IItemContainerInterface>& ItemContainerInterface, const FPrimaryAssetId& ItemId)
 {
 	int32 Number = 0;
-	UObject* InventoryObject = ResourceInventoryInterface.GetObject();
+	UObject* InventoryObject = ItemContainerInterface.GetObject();
 
 	if (IsValid(InventoryObject) && ItemId.IsValid())
 	{
-		TArray<FExchangesData> Exchanges;
+		TArray<FItemData> Exchanges;
 		GetExchanges(ItemId, Exchanges);
-
-		FItemData ItemData;
-		float Remainder;
-		for (const auto& Dependency : Exchanges)
+		if (Exchanges.Num() <= 0)
 		{
-			if (!Dependency.IsValid())
+			return 0;
+		}
+
+		TArray<FItemData> Items;
+		IItemContainerInterface::Execute_GetItemDataArray(InventoryObject, Items);
+		if (Items.Num() <= 0)
+		{
+			return 0;
+		}
+		
+		float Remainder;
+		for (const auto& Exchange : Exchanges)
+		{
+			if (!Exchange.IsValid())
 			{
 				return 0;
 			}
 
-			ResourceInventoryInterface->Execute_GetItemData(InventoryObject, Dependency.ItemID, ItemData);
-			if(!ItemData.IsValid())
+			if (const FItemData* FoundItem = Items.FindByPredicate([&](const FItemData& Item)
 			{
-				return 0;
-			}
-			
-			const int32 CurrentNumber = UKismetMathLibrary::FMod(ItemData.Count, Dependency.ItemData.Count, Remainder);
-			if(CurrentNumber <= 0)
+				return Item.IsValid() && Exchange.IsValid() && Item.ItemID == Exchange.ItemID;
+			}))
 			{
-				return 0;
-			}
+				const int32 CurrentNumber =
+					UKismetMathLibrary::FMod(FoundItem->Count, Exchange.Count, Remainder);
+				if (CurrentNumber <= 0)
+				{
+					return 0;
+				}
 
-			Number = Number <= 0 ? CurrentNumber : FMath::Min(CurrentNumber, Number);			
+				Number = Number <= 0 ? CurrentNumber : FMath::Min(CurrentNumber, Number);
+			}
+			else
+			{
+				return 0;
+			}
 		}
 	}
 

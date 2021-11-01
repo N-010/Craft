@@ -25,23 +25,14 @@ class CRAFT_API IItemContainerInterface
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Container")
-	bool AddItem(const FPrimaryAssetId& Item, const int32 ItemCount);
-
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Container")
-	bool DeleteItem(const FPrimaryAssetId& Item, const int32 ItemCount);
-
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Container")
-	bool GetItemData(const FPrimaryAssetId& Item, FItemData& Data);
+	bool AddItemData(const FItemData& ItemData);
 	
-	virtual const TMap<FPrimaryAssetId, FItemData>& GetItemMap() const = 0;
-	virtual TMap<FPrimaryAssetId, FItemData>& GetItemMap_Mutable()
-	{
-		return const_cast<TMap<FPrimaryAssetId, FItemData>&>(GetItemMap());
-	}
-
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Container")
-	void GetItems(TArray<FPrimaryAssetId>& Items);
+	bool DeleteItemData(const FItemData& ItemData);
 	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Container")
+	void GetItemDataArray(TArray<FItemData>& ItemDataArray);
+
 protected:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, meta=(BlueprintProtected="True"),
 		Category="Container|Notify")

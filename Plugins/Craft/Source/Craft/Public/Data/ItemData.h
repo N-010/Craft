@@ -15,6 +15,9 @@ struct CRAFT_API FItemData : public FFastArraySerializerItem
 	GENERATED_BODY()
 
 public:
+	static const FItemData INVALID_ITEM;
+
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FPrimaryAssetId ItemID;
 
@@ -38,6 +41,9 @@ public:
 	bool operator<=(const FItemData& Other) const;
 	bool operator>(const FItemData& Other) const;
 	bool operator>=(const FItemData& Other) const;
+	FItemData operator+(const FItemData& Other) const;
+	FItemData& operator+=(const FItemData& Other);
+	FItemData& operator+=(const FItemData* Other);
 
 	FItemData& operator =(const FItemData&) = default;
 	FItemData& operator =(FItemData&&) = default;
@@ -48,6 +54,7 @@ public:
 	void PostReplicatedChange(const struct FItemArray& InArraySerializer);
 	//~ End Replication
 };
+
 
 USTRUCT(BlueprintType)
 struct FItemArray : public FFastArraySerializer
@@ -62,8 +69,11 @@ public:
 	bool AddItem(const FItemData& Item);
 	bool RemoveItem(const FItemData& Item, const bool bUseSwap = true);
 	bool ChangeItem(const FItemData& OldItem, const FItemData& NewItem);
-	const FItemData* GetItemByIndex(const int32& Index);
-	const FItemData* FindItem(const FPrimaryAssetId& ItemID);
+	const FItemData* GetItemByIndex(const int32& Index) const;
+	const FItemData* FindItem(const FPrimaryAssetId& ItemID) const;
+	const FItemData* FindItem(const FItemData& ItemData) const;
+
+	const TArray<FItemData>& GetItems() const { return Items; }
 
 public:
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParams);

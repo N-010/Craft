@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/ItemData.h"
 #include "Subsystems/SubsystemBlueprintLibrary.h"
 #include "ExchangeSubsystem.generated.h"
 
@@ -19,17 +20,17 @@ class CRAFT_API UExchangeSubsystem : public USubsystemBlueprintLibrary
 
 public:
 	UFUNCTION(BlueprintCallable, Category="Craft")
-	static void GetExchanges(const FPrimaryAssetId& ItemId, TArray<FExchangesData>& Exchanges);
+	static void GetExchanges(const FPrimaryAssetId& ItemId, TArray<FItemData>& Exchanges);
 
 	UFUNCTION(BlueprintCallable, Category="Craft")
-	static bool CanExchangeOnItem(const TScriptInterface<IItemContainerInterface>& ResourceInventoryInterface,
+	static bool CanExchangeOnItem(const TScriptInterface<IItemContainerInterface>& ItemContainerInterface,
 	                  const FPrimaryAssetId& ItemId);
 	
 	UFUNCTION(BlueprintCallable, Category="Craft")
-	static bool RemoveExchangesFromInventory(const TScriptInterface<IItemContainerInterface>& ResourceInventoryInterface,
+	static bool RemoveExchangesFromInventory(const TScriptInterface<IItemContainerInterface>& ItemContainerInterface,
 	                  const FPrimaryAssetId& ItemId);
 	
 	UFUNCTION(BlueprintCallable, Category="Craft")
-	static int32 AvailableNumberOfItemsForCraft(const TScriptInterface<IItemContainerInterface>& ResourceInventoryInterface,
+	static int32 AvailableNumberOfItemsForCraft(const TScriptInterface<IItemContainerInterface>& ItemContainerInterface,
 	                  const FPrimaryAssetId& ItemId);
 };

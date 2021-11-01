@@ -2,110 +2,50 @@
 
 
 #include "Components/ItemContainer.h"
+
+#include "Net/UnrealNetwork.h"
 #include "PrimaryDataAssets/PrimaryAssetRecipe.h"
 
 
 // Sets default values for this component's properties
 UItemContainer::UItemContainer()
 	: Super()
+	  , bReplicateItemArray(true)
+	  , ItemReplicationCondition(COND_OwnerOnly)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
 	// ...
 }
 
-bool UItemContainer::AddItem_Implementation(const FPrimaryAssetId& Item, const int32 ItemCount)
+bool UItemContainer::AddItemData_Implementation(const FItemData& ItemData)
 {
-	bool bResult = false;
-	if (Item.IsValid() && ItemCount > 0)
+	bool bSuccess = false;
+	if (ItemData.IsValid())
 	{
-		FItemData OldItemData;
-		GetItemData_Implementation(Item, OldItemData);
-		const int32 OldItemCount = OldItemData.Count;
-
-		FItemData NewItemData = OldItemData;
-		NewItemData.UpdateItemData({ItemCount}, MAX_int32);
-
-		if (NewItemData != OldItemData)
+		FItemData NewItem{ItemData};
+		if (const FItemData* FoundItem = ItemArray.FindItem(ItemData))
 		{
-			GetItemMap_Mutable().Add(Item, NewItemData);
-
-			bResult = true;
-
-			NotifyItemChanged_Implementation(true, Item, NewItemData.Count - OldItemCount);
+			NewItem += FoundItem;
+			bSuccess = ItemArray.ChangeItem(*FoundItem, NewItem);
+		}
+		else
+		{
+			bSuccess = ItemArray.AddItem(NewItem);
 		}
 	}
 
-
-	return bResult;
+	return bSuccess;
 }
 
-bool UItemContainer::DeleteItem_Implementation(const FPrimaryAssetId& Item, const int32 ItemCount)
+bool UItemContainer::DeleteItemData_Implementation(const FItemData& ItemData)
 {
-	bool bResult = false;
-	if (Item.IsValid())
-	{
-		FItemData ResourceInfo;
-		GetItemData_Implementation(Item, ResourceInfo);
-		if (ResourceInfo.IsValid())
-		{
-			const int32 OldItemCount = ResourceInfo.Count;
-			if (ItemCount < 0)
-			{
-				ResourceInfo.Count = 0;
-			}
-			else
-			{
-				ResourceInfo.Count = FMath::Max(ResourceInfo.Count - ItemCount, 0);
-			}
-
-			if (ResourceInfo.IsValid())
-			{
-				GetItemMap_Mutable().Add(Item, ResourceInfo);
-			}
-			else
-			{
-				GetItemMap_Mutable().Remove(Item);
-			}
-
-			bResult = true;
-
-			NotifyItemChanged_Implementation(false, Item, OldItemCount - ResourceInfo.Count);
-		}
-	}
-
-	return bResult;
+	return ItemArray.RemoveItem(ItemData);
 }
 
-bool UItemContainer::GetItemData_Implementation(const FPrimaryAssetId& Item, FItemData& Data)
+void UItemContainer::GetItemDataArray_Implementation(TArray<FItemData>& ItemDataArray)
 {
-	bool bResult = false;
-	Data = FItemData(0);
-	if (Item.IsValid())
-	{
-		if (const FItemData* FoundData = GetItemMap().Find(Item))
-		{
-			Data = *FoundData;
-			bResult = true;
-		}
-	}
-
-
-	return bResult;
-}
-
-void UItemContainer::GetItems_Implementation(TArray<FPrimaryAssetId>& PrimaryAssetIds)
-{
-	PrimaryAssetIds.Reserve(GetItemMap().Num());
-	for (const auto& Item : GetItemMap())
-	{
-		PrimaryAssetIds.Add(Item.Key);
-	}
-}
-
-const TMap<FPrimaryAssetId, FItemData>& UItemContainer::GetItemMap() const
-{
-	return Items;
+	ItemDataArray = ItemArray.GetItems();
 }
 
 void UItemContainer::NotifyItemChanged_Implementation(const bool bAdded, const FPrimaryAssetId& Item,
@@ -115,4 +55,18 @@ void UItemContainer::NotifyItemChanged_Implementation(const bool bAdded, const F
 	{
 		OnItemChanged.Broadcast(bAdded, Item, ItemCount);
 	}
+}
+
+void UItemContainer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ThisClass, ItemArray, ItemReplicationCondition);
+}
+
+void UItemContainer::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{
+	Super::PreReplication(ChangedPropertyTracker);
+
+	DOREPLIFETIME_ACTIVE_OVERRIDE(ThisClass, ItemArray, bReplicateItemArray);
 }

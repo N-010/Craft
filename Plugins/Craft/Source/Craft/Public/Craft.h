@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Data/ItemData.h"
 #include "Modules/ModuleManager.h"
 
 struct FExchangesData;
@@ -21,5 +22,5 @@ public:
 
 	static int32 ForceLoadAsset(const FPrimaryAssetId& PrimaryAssetId, const FString& Path);
 
-	static void GetExchanges(const FPrimaryAssetId& ItemID, TArray<FExchangesData>& OutExchanges);
+	static void GetExchanges(const FPrimaryAssetId& ItemID, TArray<FItemData>& OutExchanges);
 };

@@ -17,7 +17,7 @@ class CRAFT_API UPrimaryAssetItemWithExchanges : public UPrimaryAssetBaseItem
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Exchanges")
-	TMap<FPrimaryAssetId, FItemData> Exchanges;
+	TArray<FItemData> Exchanges;
 
 public:
 	//~ Begin UObject Interfaces

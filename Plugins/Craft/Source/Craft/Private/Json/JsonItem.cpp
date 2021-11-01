@@ -4,23 +4,22 @@
 #include "Json/JsonItem.h"
 #include "Data/ItemData.h"
 
-bool FJsonItem::ExchangesToJsonObject(const TMap<FPrimaryAssetId, FItemData>& Exchanges,
-                                              TSharedRef<FJsonObject> OutJsonObject)
+bool FJsonItem::ExchangesToJsonObject(const TArray<FItemData>& Exchanges,
+                                      TSharedRef<FJsonObject> OutJsonObject)
 {
 	if (Exchanges.Num() > 0)
 	{
 		TArray<TSharedPtr<FJsonValue>> JsonValues;
-		for (const auto& ItemForCrafting : Exchanges)
+		for (const auto& Exchange : Exchanges)
 		{
-			const FPrimaryAssetId& ItemId = ItemForCrafting.Key;
-			if (!ItemId.IsValid())
+			if (!Exchange.IsValid())
 			{
 				return false;
 			}
 
 			TArray<TSharedPtr<FJsonValue>> ItemDataJsonArray;
-			ItemDataJsonArray.Add(MakeShared<FJsonValueString>(ItemId.ToString()));
-			ItemDataJsonArray.Add(MakeShared<FJsonValueNumber>(ItemForCrafting.Value.Count));
+			ItemDataJsonArray.Add(MakeShared<FJsonValueString>(Exchange.ItemID.ToString()));
+			ItemDataJsonArray.Add(MakeShared<FJsonValueNumber>(Exchange.Count));
 
 			JsonValues.Add(MakeShared<FJsonValueArray>(ItemDataJsonArray));
 		}
@@ -36,7 +35,7 @@ bool FJsonItem::ExchangesToJsonObject(const TMap<FPrimaryAssetId, FItemData>& Ex
 }
 
 void FJsonItem::JsonStringToExchanges(const FString& JsonString,
-                                              TMap<FPrimaryAssetId, FItemData>& Exchanges)
+                                      TArray<FItemData>& Exchanges)
 {
 	if (!JsonString.IsEmpty())
 	{
@@ -49,12 +48,12 @@ void FJsonItem::JsonStringToExchanges(const FString& JsonString,
 }
 
 void FJsonItem::JsonObjectToExchanges(const TSharedRef<FJsonObject> JsonObject,
-                                              TMap<FPrimaryAssetId, FItemData>& Exchanges)
+                                      TArray<FItemData>& Exchanges)
 {
 	const TArray<TSharedPtr<FJsonValue>>& JsonArray = JsonObject->GetArrayField(ArrayField.ToString());
 	Exchanges.Reserve(JsonArray.Num());
 
-	
+
 	for (const auto& JsonValue : JsonArray)
 	{
 		const TArray<TSharedPtr<FJsonValue>>& Fields = JsonValue->AsArray();
@@ -65,9 +64,8 @@ void FJsonItem::JsonObjectToExchanges(const TSharedRef<FJsonObject> JsonObject,
 			FPrimaryAssetId ItemID(ItemIdString);
 			if (ItemID.IsValid())
 			{
-				Exchanges.Add(ItemID, FItemData(Count));
+				Exchanges.Add({ItemID, Count});
 			}
-			
 		}
 	}
 }

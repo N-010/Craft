@@ -9,7 +9,6 @@
 #include "Json/JsonItem.h"
 #include "Misc/ExpressionParser.h"
 #include "PrimaryDataAssets/PrimaryAssetRecipe.h"
-#include "UObject/UnrealTypePrivate.h"
 
 #define LOCTEXT_NAMESPACE "FCraftModule"
 
@@ -49,7 +48,7 @@ int32 FCraftModule::ForceLoadAsset(const FPrimaryAssetId& PrimaryAssetId, const 
 	return 0;
 }
 
-void FCraftModule::GetExchanges(const FPrimaryAssetId& ItemID, TArray<FExchangesData>& OutExchanges)
+void FCraftModule::GetExchanges(const FPrimaryAssetId& ItemID, TArray<FItemData>& OutExchanges)
 {
 	if (!ItemID.IsValid())
 	{
@@ -70,7 +69,7 @@ void FCraftModule::GetExchanges(const FPrimaryAssetId& ItemID, TArray<FExchanges
 		AssetData.GetTagValue(GET_MEMBER_NAME_CHECKED(UPrimaryAssetItemWithExchanges, Exchanges), ExchangesStr);
 		if (!ExchangesStr.IsEmpty())
 		{
-			TMap<FPrimaryAssetId, FItemData> Items;
+			TArray<FItemData> Items;
 			FJsonItem::JsonStringToExchanges(ExchangesStr, Items);
 
 			if (Items.Num() > 0)
@@ -78,13 +77,13 @@ void FCraftModule::GetExchanges(const FPrimaryAssetId& ItemID, TArray<FExchanges
 				OutExchanges.Reserve(Items.Num());
 				for (const auto& Item : Items)
 				{
-					if(!Item.Key.IsValid() || !Item.Value.IsValid())
+					if (!Item.IsValid())
 					{
 						OutExchanges.Empty();
 						return;
 					}
-					
-					OutExchanges.Add(FExchangesData(Item.Key, Item.Value));
+
+					OutExchanges.Add(Item);
 				}
 			}
 		}

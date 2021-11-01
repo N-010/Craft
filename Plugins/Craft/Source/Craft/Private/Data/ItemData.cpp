@@ -3,8 +3,10 @@
 
 #include "Data/ItemData.h"
 
+const FItemData FItemData::INVALID_ITEM{};
+
 FItemData::FItemData()
-	: Count(1)
+	: Count(0)
 {
 }
 
@@ -63,6 +65,37 @@ bool FItemData::operator>=(const FItemData& Other) const
 	return !operator<(Other);
 }
 
+FItemData FItemData::operator+(const FItemData& Other) const
+{
+	FItemData NewItem{*this};
+	if (this->IsValid() && Other.IsValid())
+	{
+		NewItem.Count += Other.Count;
+	}
+
+	return MoveTemp(NewItem);
+}
+
+FItemData& FItemData::operator+=(const FItemData& Other)
+{
+	if (Other.IsValid() && this->IsValid())
+	{
+		Count += Other.Count;
+	}
+
+	return *this;
+}
+
+FItemData& FItemData::operator+=(const FItemData* Other)
+{
+	if (Other != nullptr)
+	{
+		*this += *Other;
+	}
+
+	return *this;
+}
+
 //~ Begin Replication
 
 void FItemData::PreReplicatedRemove(const FItemArray& InArraySerializer)
@@ -92,7 +125,11 @@ bool FItemArray::AddItem(const FItemData& Item)
 bool FItemArray::RemoveItem(const FItemData& Item, const bool bUseSwap)
 {
 	bool bResult = false;
-	bResult = bUseSwap ? Items.RemoveSwap(Item) > 0 : Items.Remove(Item) > 0;
+	if (const FItemData* FoundItem = FindItem(Item))
+	{
+		bResult = bUseSwap ? Items.RemoveSwap(*FoundItem) > 0 : Items.Remove(*FoundItem) > 0;
+	}
+	
 	if (bResult)
 	{
 		MarkArrayDirty();
@@ -114,7 +151,7 @@ bool FItemArray::ChangeItem(const FItemData& OldItem, const FItemData& NewItem)
 	return bResult;
 }
 
-const FItemData* FItemArray::GetItemByIndex(const int32& Index)
+const FItemData* FItemArray::GetItemByIndex(const int32& Index) const
 {
 	const FItemData* FoundItem = nullptr;
 	if (Items.IsValidIndex(Index))
@@ -125,7 +162,7 @@ const FItemData* FItemArray::GetItemByIndex(const int32& Index)
 	return FoundItem;
 }
 
-const FItemData* FItemArray::FindItem(const FPrimaryAssetId& ItemID)
+const FItemData* FItemArray::FindItem(const FPrimaryAssetId& ItemID) const
 {
 	const FItemData* FoundItem = nullptr;
 	if (ItemID.IsValid())
@@ -136,6 +173,18 @@ const FItemData* FItemArray::FindItem(const FPrimaryAssetId& ItemID)
 		});
 	}
 	return FoundItem;
+}
+
+const FItemData* FItemArray::FindItem(const FItemData& ItemData) const
+{
+	const FItemData* FoundItemData = nullptr;
+
+	if (ItemData.IsValid())
+	{
+		FoundItemData = FindItem(ItemData.ItemID);
+	}
+
+	return FoundItemData;
 }
 
 bool FItemArray::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParams)
