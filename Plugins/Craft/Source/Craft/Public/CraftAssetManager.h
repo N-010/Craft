@@ -19,7 +19,4 @@ public:
 	static const FPrimaryAssetType WeaponRecipe;
 	static const FPrimaryAssetType MedicineRecipe;
 	static const FPrimaryAssetType ShopItem;
-	
-public:
-	virtual void StartInitialLoading() override;
 };

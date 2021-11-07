@@ -3,7 +3,7 @@
 
 #include "Items/CraftBaseItem.h"
 
-#include "Craft.h"
+#include "CraftAssetManager.h"
 #include "AssetRegistry/Private/AssetRegistry.h"
 #include "Engine/AssetManager.h"
 #include "Engine/CollisionProfile.h"
@@ -60,63 +60,56 @@ void ACraftBaseItem::SetItemInfoFromAssetID(const FPrimaryAssetId AssetId)
 
 void ACraftBaseItem::AssignMesh()
 {
-	UAssetManager* AssetManager = UAssetManager::GetIfValid();
+	UCraftAssetManager* AssetManager = Cast<UCraftAssetManager>(UAssetManager::GetIfValid());
 
-	if (IsValid(AssetManager))
+	if (IsValid(AssetManager) && RecipeComponentItem.IsValid())
 	{
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(
-			TEXT("AssetRegistry"));
-		if (!AssetRegistryModule.Get().IsLoadingAssets())
+		IAssetRegistry& AssetRegistry = AssetManager->GetAssetRegistry();
+		if (!AssetRegistry.IsLoadingAssets())
 		{
 			if (OnFilesLoadedHandle.IsSet())
 			{
-				AssetRegistryModule.Get().OnFilesLoaded().Remove(OnFilesLoadedHandle.GetValue());
+				AssetRegistry.OnFilesLoaded().Remove(OnFilesLoadedHandle.GetValue());
 				OnFilesLoadedHandle.Reset();
 			}
 
-			if (RecipeComponentItem.IsValid())
+			const TSharedPtr<FStreamableHandle> LoadHandle = AssetManager->LoadPrimaryAsset(
+				RecipeComponentItem, {"Mesh"});
+			if (LoadHandle.IsValid())
 			{
-				const TSharedPtr<FStreamableHandle> LoadHandle = AssetManager->LoadPrimaryAsset(
-					RecipeComponentItem, {"Mesh"});
-				if (LoadHandle.IsValid())
+				if (!LoadHandle->HasLoadCompleted())
 				{
-					if (!LoadHandle->HasLoadCompleted())
-					{
-						LoadHandle->BindCompleteDelegate(
-							FStreamableDelegate::CreateUObject(this, &ThisClass::OnSetMesh));
-						return;
-					}
+					LoadHandle->BindCompleteDelegate(
+						FStreamableDelegate::CreateUObject(this, &ThisClass::OnSetMesh));
 				}
-#if WITH_EDITOR
 				else
 				{
-					if (!bIsForceLoad && FCraftModule::ForceLoadAsset(RecipeComponentItem, TEXT("/Game/Recipes/")) > 0)
-					{
-						bIsForceLoad = true;
-						AssignMesh();
-					}
+					OnSetMesh();
 				}
-#endif //WITH_EDITOR
 			}
 		}
 		else
 		{
-			if (!AssetRegistryModule.Get().OnFilesLoaded().IsBoundToObject(this))
+			if (!AssetRegistry.OnFilesLoaded().IsBoundToObject(this))
 			{
-				OnFilesLoadedHandle = AssetRegistryModule.Get().OnFilesLoaded().
-				                                          AddUObject(this, &ThisClass::AssignMesh);
+				/** FTimerManager::SetTimerForNextTick is needed so that the ThisClass::AssignMesh function is called after UAssetManager::OnAssetRegistryFilesLoaded.
+				 *	Without it, UAssetManager::LoadPrimaryAsset will return null */
+				OnFilesLoadedHandle = AssetRegistry.OnFilesLoaded().AddLambda([&]()
+				{
+					if (const UWorld* World = GEngine->GetWorldFromContextObject(
+						this, EGetWorldErrorMode::LogAndReturnNull))
+					{
+						World->GetTimerManager().SetTimerForNextTick(this, &ThisClass::AssignMesh);
+					}
+				});
 			}
 		}
 	}
-
-	OnSetMesh();
-
-	return;
 }
 
 void ACraftBaseItem::SetItemInfoFromSoftObjectPath(const TSoftObjectPtr<UPrimaryAssetRecipe> SoftObjectPath)
 {
-	UAssetManager* AssetManager = UAssetManager::GetIfValid();
+	const UAssetManager* AssetManager = UAssetManager::GetIfValid();
 	if (IsValid(AssetManager) && SoftObjectPath.IsValid())
 	{
 		RecipeComponentItem = AssetManager->GetPrimaryAssetIdForPath(SoftObjectPath.ToSoftObjectPath());
@@ -133,10 +126,10 @@ void ACraftBaseItem::BeginPlay()
 void ACraftBaseItem::OnSetMesh()
 {
 	UStaticMesh* StaticMesh = nullptr;
-	UAssetManager* AssetManager = UAssetManager::GetIfValid();
+	const UAssetManager* AssetManager = UAssetManager::GetIfValid();
 	if (AssetManager->IsValid() && RecipeComponentItem.IsValid() && IsValid(StaticMeshComponent))
 	{
-		UPrimaryAssetRecipe* PrimaryAssetRecipe = Cast<UPrimaryAssetRecipe>(
+		const UPrimaryAssetRecipe* PrimaryAssetRecipe = Cast<UPrimaryAssetRecipe>(
 			AssetManager->GetPrimaryAssetObject(RecipeComponentItem));
 
 		StaticMesh = IsValid(PrimaryAssetRecipe) && PrimaryAssetRecipe->StaticMesh.IsValid()

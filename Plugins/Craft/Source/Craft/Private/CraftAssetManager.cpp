@@ -8,8 +8,3 @@ const FPrimaryAssetType UCraftAssetManager::ArmorRecipe = FName(TEXT("ArmorRecip
 const FPrimaryAssetType UCraftAssetManager::WeaponRecipe = FName(TEXT("WeaponRecipe"));
 const FPrimaryAssetType UCraftAssetManager::MedicineRecipe = FName(TEXT("MedicineRecipe"));
 const FPrimaryAssetType UCraftAssetManager::ShopItem = FName(TEXT("ShopItem"));
-
-void UCraftAssetManager::StartInitialLoading()
-{
-	Super::StartInitialLoading();
-}

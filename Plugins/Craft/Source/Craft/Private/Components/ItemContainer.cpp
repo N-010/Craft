@@ -10,11 +10,9 @@
 // Sets default values for this component's properties
 UItemContainer::UItemContainer()
 	: Super()
-	  , bReplicateItemArray(true)
-	  , ItemReplicationCondition(COND_OwnerOnly)
 {
 	PrimaryComponentTick.bCanEverTick = false;
-
+	SetIsReplicatedByDefault(true);
 	// ...
 }
 
@@ -61,12 +59,5 @@ void UItemContainer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(ThisClass, ItemArray, ItemReplicationCondition);
-}
-
-void UItemContainer::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
-{
-	Super::PreReplication(ChangedPropertyTracker);
-
-	DOREPLIFETIME_ACTIVE_OVERRIDE(ThisClass, ItemArray, bReplicateItemArray);
+	DOREPLIFETIME(ThisClass, ItemArray);
 }

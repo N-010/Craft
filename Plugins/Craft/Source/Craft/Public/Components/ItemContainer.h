@@ -22,12 +22,6 @@ private:
 	UPROPERTY(Replicated, BlueprintReadOnly, EditDefaultsOnly, meta=(AllowPrivateAccess="true"), Category="Container")
 	FItemArray ItemArray;
 
-	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"), Category="Network")
-	bool bReplicateItemArray;
-
-	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"), Category="Network")
-	TEnumAsByte<ELifetimeCondition> ItemReplicationCondition;
-
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnItemChanged OnItemChanged;
@@ -48,5 +42,4 @@ protected:
 
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 };
