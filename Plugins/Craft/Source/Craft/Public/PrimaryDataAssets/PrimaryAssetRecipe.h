@@ -32,7 +32,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Mesh", meta=(AssetBundles="Mesh"))
 	TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Mesh", meta=(AssetBundles="Mesh"))
 	TSoftObjectPtr<UStaticMesh> StaticMesh;
 

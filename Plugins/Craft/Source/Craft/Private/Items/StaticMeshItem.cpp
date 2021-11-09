@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Items/CraftBaseItem.h"
+#include "Items/StaticMeshItem.h"
 
 #include "CraftAssetManager.h"
 #include "AssetRegistry/Private/AssetRegistry.h"
@@ -10,13 +10,12 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "PrimaryDataAssets/PrimaryAssetRecipe.h"
 
-FName ACraftBaseItem::StaticMeshComponentName = TEXT("StaticMeshCompnent");
+FName AStaticMeshItem::StaticMeshComponentName = TEXT("StaticMeshCompnent");
 
 
 // Sets default values
-ACraftBaseItem::ACraftBaseItem(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer),
-	  bIsForceLoad(false)
+AStaticMeshItem::AStaticMeshItem(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
@@ -37,32 +36,18 @@ ACraftBaseItem::ACraftBaseItem(const FObjectInitializer& ObjectInitializer)
 	}
 }
 
-void ACraftBaseItem::OnConstruction(const FTransform& Transform)
+void AStaticMeshItem::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
 	AssignMesh();
 }
 
-void ACraftBaseItem::SetItemInfoFromAssetID(const FPrimaryAssetId AssetId)
+void AStaticMeshItem::AssignMesh()
 {
-	if (AssetId.IsValid())
-	{
-		const TSoftObjectPtr<UObject> SoftObjectPtr =
-			UKismetSystemLibrary::GetSoftObjectReferenceFromPrimaryAssetId(AssetId);
-		if (SoftObjectPtr.IsValid())
-		{
-			const TSoftObjectPtr<UPrimaryAssetRecipe> PrimaryAssetRecipeSoftObjectPtr(SoftObjectPtr.ToSoftObjectPath());
-			SetItemInfoFromSoftObjectPath(PrimaryAssetRecipeSoftObjectPtr);
-		}
-	}
-}
+	UAssetManager* AssetManager = UAssetManager::GetIfValid();
 
-void ACraftBaseItem::AssignMesh()
-{
-	UCraftAssetManager* AssetManager = Cast<UCraftAssetManager>(UAssetManager::GetIfValid());
-
-	if (IsValid(AssetManager) && RecipeComponentItem.IsValid())
+	if (IsValid(AssetManager) && ItemId.IsValid())
 	{
 		IAssetRegistry& AssetRegistry = AssetManager->GetAssetRegistry();
 		if (!AssetRegistry.IsLoadingAssets())
@@ -74,7 +59,7 @@ void ACraftBaseItem::AssignMesh()
 			}
 
 			const TSharedPtr<FStreamableHandle> LoadHandle = AssetManager->LoadPrimaryAsset(
-				RecipeComponentItem, {"Mesh"});
+				ItemId, {"Mesh"});
 			if (LoadHandle.IsValid())
 			{
 				if (!LoadHandle->HasLoadCompleted())
@@ -86,6 +71,10 @@ void ACraftBaseItem::AssignMesh()
 				{
 					OnSetMesh();
 				}
+			}
+			else if(IsValid(AssetManager->GetPrimaryAssetObject(ItemId)))
+			{
+				OnSetMesh();
 			}
 		}
 		else
@@ -107,35 +96,48 @@ void ACraftBaseItem::AssignMesh()
 	}
 }
 
-void ACraftBaseItem::SetItemInfoFromSoftObjectPath(const TSoftObjectPtr<UPrimaryAssetRecipe> SoftObjectPath)
-{
-	const UAssetManager* AssetManager = UAssetManager::GetIfValid();
-	if (IsValid(AssetManager) && SoftObjectPath.IsValid())
-	{
-		RecipeComponentItem = AssetManager->GetPrimaryAssetIdForPath(SoftObjectPath.ToSoftObjectPath());
-		AssignMesh();
-	}
-}
 
-// Called when the game starts or when spawned
-void ACraftBaseItem::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-void ACraftBaseItem::OnSetMesh()
+void AStaticMeshItem::OnSetMesh()
 {
 	UStaticMesh* StaticMesh = nullptr;
 	const UAssetManager* AssetManager = UAssetManager::GetIfValid();
-	if (AssetManager->IsValid() && RecipeComponentItem.IsValid() && IsValid(StaticMeshComponent))
+	if (AssetManager && AssetManager->IsValid() && ItemId.IsValid() && IsValid(StaticMeshComponent))
 	{
-		const UPrimaryAssetRecipe* PrimaryAssetRecipe = Cast<UPrimaryAssetRecipe>(
-			AssetManager->GetPrimaryAssetObject(RecipeComponentItem));
+		const UObject* PrimaryAssetObject = AssetManager->GetPrimaryAssetObject(ItemId);
+		if (!IsValid(PrimaryAssetObject))
+		{
+			return;
+		}
 
-		StaticMesh = IsValid(PrimaryAssetRecipe) && PrimaryAssetRecipe->StaticMesh.IsValid()
-			             ? PrimaryAssetRecipe->StaticMesh.Get()
-			             : nullptr;
+		UStaticMesh* FoundMesh = nullptr;
+		for (TPropertyValueIterator<FProperty> It(PrimaryAssetObject->GetClass(), PrimaryAssetObject); It; ++It)
+		{
+			if (It.Key()->HasMetaData(TEXT("AssetBundles")) && It.Key()->GetMetaData(TEXT("AssetBundles")) ==
+				TEXT("Mesh"))
+			{
+				if (const FObjectProperty* ObjectProperty = CastField<FObjectProperty>(It.Key()))
+				{
+					UObject* Object = ObjectProperty->GetObjectPropertyValue(It.Value());
+					if(Object)
+					{
+						FoundMesh = Cast<UStaticMesh>(Object);
+						break;
+					}
+				}
+				else
+				{
+					if (const FSoftObjectProperty* SoftObjectProperty = CastField<FSoftObjectProperty>(It.Key()))
+					{
+						if(UObject* StaticMeshObject = SoftObjectProperty->LoadObjectPropertyValue(It.Value()))
+						{
+							FoundMesh = Cast<UStaticMesh>(StaticMeshObject);
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		StaticMeshComponent->SetStaticMesh(FoundMesh);
 	}
-
-	StaticMeshComponent->SetStaticMesh(StaticMesh);
 }
